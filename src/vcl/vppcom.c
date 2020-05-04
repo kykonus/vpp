@@ -1222,8 +1222,8 @@ vppcom_app_create (char *app_name)
 void
 vppcom_app_destroy (void)
 {
+  vcl_worker_t *wrk, *current_wrk;
   struct dlmallinfo mi;
-  vcl_worker_t *wrk;
   mspace heap;
 
   if (!pool_elts (vcm->workers))
@@ -1231,15 +1231,18 @@ vppcom_app_destroy (void)
 
   vcl_evt (VCL_EVT_DETACH, vcm);
 
-  vcl_send_app_detach (vcl_worker_get_current ());
+  current_wrk = vcl_worker_get_current ();
 
   /* *INDENT-OFF* */
   pool_foreach (wrk, vcm->workers, ({
-    if (pool_elts (vcm->workers) == 1)
-      vl_client_disconnect_from_vlib ();
-    vcl_worker_cleanup (wrk, 0 /* notify vpp */ );
+    if (current_wrk != wrk)
+      vcl_worker_cleanup (wrk, 0 /* notify vpp */ );
   }));
   /* *INDENT-ON* */
+
+  vcl_send_app_detach (current_wrk);
+  vppcom_disconnect_from_vpp ();
+  vcl_worker_cleanup (current_wrk, 0 /* notify vpp */ );
 
   vcl_elog_stop (vcm);
 
@@ -3825,6 +3828,12 @@ vppcom_worker_unregister (void)
 {
   vcl_worker_cleanup (vcl_worker_get_current (), 1 /* notify vpp */ );
   vcl_set_worker_index (~0);
+}
+
+void
+vppcom_worker_index_set (int index)
+{
+  vcl_set_worker_index (index);
 }
 
 int

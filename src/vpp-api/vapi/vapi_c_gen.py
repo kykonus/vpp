@@ -19,13 +19,13 @@ class CField(Field):
             else:
                 return "vl_api_string_t %s;" % (self.name)
         else:
-            if self.len is not None:
+            if self.len is not None and type(self.len) != dict:
                 return "%s %s[%d];" % (self.type.get_c_name(), self.name, self.len)
             else:
                 return "%s %s;" % (self.type.get_c_name(), self.name)
 
     def get_swap_to_be_code(self, struct, var):
-        if self.len is not None:
+        if self.len is not None and type(self.len) != dict:
             if self.len > 0:
                 return "do { unsigned i; for (i = 0; i < %d; ++i) { %s } }"\
                     " while(0);" % (
@@ -46,7 +46,7 @@ class CField(Field):
         return self.type.get_swap_to_be_code(struct, "%s" % var)
 
     def get_swap_to_host_code(self, struct, var):
-        if self.len is not None:
+        if self.len is not None and type(self.len) != dict:
             if self.len > 0:
                 return "do { unsigned i; for (i = 0; i < %d; ++i) { %s } }"\
                     " while(0);" % (
@@ -691,7 +691,7 @@ def gen_json_unified_header(parser, logger, j, io, name):
     orig_stdout = sys.stdout
     sys.stdout = io
     include_guard = "__included_%s" % (
-        j.replace(".", "_").replace("/", "_").replace("-", "_"))
+        j.replace(".", "_").replace("/", "_").replace("-", "_").replace("+", "_"))
     print("#ifndef %s" % include_guard)
     print("#define %s" % include_guard)
     print("")
